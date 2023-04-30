@@ -19,7 +19,8 @@ Model for NerfSTs
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Type
+from typing import Type, Dict, List
+from torch.nn import Parameter
 
 import torch
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
@@ -29,6 +30,9 @@ from nerfstudio.model_components.losses import (
     interlevel_loss,
 )
 from nerfstudio.models.nerfacto import NerfactoModel, NerfactoModelConfig
+from rich.progress import Console, track
+
+CONSOLE = Console(width=120)
 
 
 @dataclass
@@ -40,6 +44,8 @@ class NerfSTModelConfig(NerfactoModelConfig):
     """Whether to use L1 loss"""
     use_lpips: bool = False
     """Whether to use LPIPS loss"""
+    fix_density: bool = False
+    """Whether to fix density encoder, namely HashGrid+DensityMLP"""
 
 
 class NerfSTModel(NerfactoModel):
@@ -57,6 +63,22 @@ class NerfSTModel(NerfactoModel):
             self.rgb_loss = MSELoss()
         
         self.lpips = LearnedPerceptualImagePatchSimilarity()
+
+    def get_param_groups(self) -> Dict[str, List[Parameter]]:
+        param_groups = {}
+        param_groups["proposal_networks"] = list(self.proposal_networks.parameters())
+        if self.config.fix_density:
+            fields_params = []
+            for name, params in self.field.named_parameters():
+                CONSOLE.print(f'{name}: {params.shape}')
+                if name == 'mlp_base.params':
+                    params.requires_grad_(False)
+                fields_params.append(params)
+            param_groups["fields"] = fields_params
+        else:
+            param_groups["fields"] = list(self.field.parameters())
+        
+        return param_groups
 
     def get_loss_dict(self, outputs, batch, metrics_dict=None):
         loss_dict = {}
