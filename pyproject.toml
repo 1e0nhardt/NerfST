@@ -1,6 +1,6 @@
 [project]
-name = "nerfst0"
-version = "0.0.1"
+name = "nerfst"
+version = "0.0.2"
 
 dependencies = [
     "nerfstudio"

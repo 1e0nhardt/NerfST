@@ -24,7 +24,9 @@ from nerfst.nerfst_datamanager import (
     NerfSTDataManagerConfig,
 )
 from nerfst.style_transfer.pama import pama_infer_one_image
+from rich.progress import Console, track
 
+CONSOLE = Console(width=120)
 
 @dataclass
 class PamaConfig:
@@ -75,6 +77,19 @@ class NerfSTPipeline(VanillaPipeline):
             self.train_indices_order = cycle(range(len(self.datamanager.train_dataparser_outputs.image_filenames)))
         else:
             self.train_indices_order = cycle(range(self.datamanager.config.train_num_images_to_sample_from))
+        
+        # style_transfered_batch = []
+        # original_images = self.datamanager.original_image_batch["image"]
+        # style_image = self.datamanager.style_image.unsqueeze(dim=0).permute(0, 3, 1, 2)
+
+        # CONSOLE.print(self.datamanager.image_batch['image'].shape)
+        # CONSOLE.print(self.datamanager.image_batch['image'].device)
+        # for i in track(range(original_images.shape[0])):
+        #     style_transfered_image = pama_infer_one_image(original_images[i].unsqueeze(0).permute(0, 3, 1, 2), style_image, self.config.pama_config)
+        #     style_transfered_batch.append(style_transfered_image.permute(0, 2, 3, 1).contiguous().cpu())
+        # self.datamanager.original_image_batch['image'] = torch.concat(style_transfered_batch, dim=0).contiguous()
+        # CONSOLE.print(self.datamanager.original_image_batch['image'].shape)
+        # self.datamanager.image_batch['image'] = self.datamanager.original_image_batch['image']
 
     def get_train_loss_dict(self, step: int):
         """This function gets your training loss dict and performs image editing.
@@ -88,10 +103,14 @@ class NerfSTPipeline(VanillaPipeline):
         metrics_dict = self.model.get_metrics_dict(model_outputs, batch)
 
         # edit an image every ``edit_rate`` steps
-        if (step % self.config.edit_rate == 0):
+        # if (step % self.config.edit_rate == 0):
+        if (step == 30010):
+            CONSOLE.print("Start Transfer")
+            CONSOLE.print(len(self.datamanager.train_dataparser_outputs.image_filenames))
 
             # edit ``edit_count`` images in a row
-            for i in range(self.config.edit_count):
+            # for i in range(self.config.edit_count):
+            for i in track(range(len(self.datamanager.train_dataparser_outputs.image_filenames))):
 
                 # iterate through "spot in dataset"
                 current_spot = next(self.train_indices_order)
@@ -120,7 +139,7 @@ class NerfSTPipeline(VanillaPipeline):
                 del camera_transforms
                 torch.cuda.empty_cache()
 
-                style_transferred_image = pama_infer_one_image(rendered_image, style_image, self.config.pama_config)
+                style_transferred_image = pama_infer_one_image(original_image, style_image, self.config.pama_config)
 
                 # resize to original image size (often not necessary)
                 if (style_transferred_image.size() != rendered_image.size()):
