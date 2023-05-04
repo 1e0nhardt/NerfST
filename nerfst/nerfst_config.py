@@ -16,6 +16,48 @@ from nerfstudio.engine.schedulers import (
 from nerfst.nerfst_datamanager import NerfSTDataManagerConfig
 from nerfst.nerfst_model import NerfSTModelConfig
 from nerfst.nerfst_pipeline import NerfSTPipelineConfig, PamaConfig
+from nerfst.nerfst_arf_pipeline import NerfSTArfPipelineConfig
+from nerfst.nerfst_trainer import NeRFSTArfTrainerConfig
+
+arf_method = MethodSpecification(
+    config=NeRFSTArfTrainerConfig(
+        method_name="arfst",  # ns-train method_name
+        steps_per_eval_batch=1000,
+        steps_per_eval_image=100,
+        steps_per_save=50,
+        save_only_latest_checkpoint=False,
+        max_num_iterations=2000,
+        pipeline=NerfSTArfPipelineConfig(
+            datamanager=NerfSTDataManagerConfig(
+                dataparser=NerfstudioDataParserConfig(),
+                train_num_rays_per_batch=4096,
+                eval_num_rays_per_batch=4096,
+                camera_optimizer=CameraOptimizerConfig(
+                    mode="SO3xR3",
+                    optimizer=AdamOptimizerConfig(
+                        lr=6e-4, eps=1e-8, weight_decay=1e-2),
+                    scheduler=ExponentialDecaySchedulerConfig(
+                        lr_final=6e-6, max_steps=200000),
+                ),
+            ),
+            model=NerfSTModelConfig(eval_num_rays_per_chunk=1 << 15),
+        ),
+        optimizers={
+            "proposal_networks": {
+                "optimizer": AdamOptimizerConfig(lr=1e-2, eps=1e-15),
+                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-4, max_steps=2000),
+            },
+            "fields": {
+                "optimizer": AdamOptimizerConfig(lr=1e-2, eps=1e-15),
+                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-4, max_steps=2000),
+            },
+        },
+        viewer=ViewerConfig(num_rays_per_chunk=1 << 15),
+        vis="viewer",
+    ),
+    description="ARF Style Transfer"
+)
+
 
 nerfst_method = MethodSpecification(
     config=TrainerConfig(

@@ -1,6 +1,6 @@
 [project]
 name = "nerfst"
-version = "0.0.1"
+version = "0.1.2"
 
 dependencies = [
     "nerfstudio"
@@ -11,3 +11,4 @@ include = ["nerfst*"]
 
 [project.entry-points.'nerfstudio.method_configs']
 nerfst = 'nerfst.nerfst_config:nerfst_method'
+arfst = 'nerfst.nerfst_config:arf_method'
