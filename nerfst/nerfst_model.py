@@ -19,17 +19,20 @@ Model for NerfSTs
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Type
+from typing import Dict, List, Type
+from nerfstudio.cameras.rays import RayBundle
 
 import torch
+from torch.nn import Parameter
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
+from nerfstudio.field_components.spatial_distortions import SceneContraction
 from nerfstudio.model_components.losses import (
     L1Loss,
     MSELoss,
     interlevel_loss,
 )
 from nerfstudio.models.nerfacto import NerfactoModel, NerfactoModelConfig
-
+from nerfst.nerfst_arf_field import ArfTcnnField
 
 @dataclass
 class NerfSTModelConfig(NerfactoModelConfig):
@@ -40,6 +43,10 @@ class NerfSTModelConfig(NerfactoModelConfig):
     """Whether to use L1 loss"""
     use_lpips: bool = False
     """Whether to use LPIPS loss"""
+    fix_density: bool = False
+    """ARF need fix density"""
+    no_viewdep: bool = False
+    """ARF discard view dependent modeling"""
 
 
 class NerfSTModel(NerfactoModel):
@@ -57,6 +64,41 @@ class NerfSTModel(NerfactoModel):
             self.rgb_loss = MSELoss()
         
         self.lpips = LearnedPerceptualImagePatchSimilarity()
+
+        if self.config.disable_scene_contraction:
+            scene_contraction = None
+        else:
+            scene_contraction = SceneContraction(order=float("inf"))
+
+        self.field = ArfTcnnField(
+            self.scene_box.aabb,
+            hidden_dim=self.config.hidden_dim,
+            num_levels=self.config.num_levels,
+            max_res=self.config.max_res,
+            log2_hashmap_size=self.config.log2_hashmap_size,
+            hidden_dim_color=self.config.hidden_dim_color,
+            hidden_dim_transient=self.config.hidden_dim_transient,
+            spatial_distortion=scene_contraction,
+            num_images=self.num_train_data,
+            use_pred_normals=self.config.predict_normals,
+            use_average_appearance_embedding=self.config.use_average_appearance_embedding,
+            no_viewdep=self.config.no_viewdep
+        )
+
+    def get_param_groups(self) -> Dict[str, List[Parameter]]:
+        param_groups = {}
+        param_groups["proposal_networks"] = list(self.proposal_networks.parameters())
+        if self.config.fix_density:
+            fields_params = []
+            for name, params in self.field.named_parameters():
+                if name == 'mlp_base.params':
+                    params.requires_grad_(False)
+                fields_params.append(params)
+            param_groups["fields"] = fields_params
+        else:
+            param_groups["fields"] = list(self.field.parameters())
+        
+        return param_groups
 
     def get_loss_dict(self, outputs, batch, metrics_dict=None):
         loss_dict = {}

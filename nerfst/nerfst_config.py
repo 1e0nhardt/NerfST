@@ -40,7 +40,11 @@ arf_method = MethodSpecification(
                         lr_final=6e-6, max_steps=200000),
                 ),
             ),
-            model=NerfSTModelConfig(eval_num_rays_per_chunk=1 << 15),
+            model=NerfSTModelConfig(
+                eval_num_rays_per_chunk=1 << 15,
+                fix_density=True,
+                no_viewdep=True
+            ),
         ),
         optimizers={
             "proposal_networks": {
