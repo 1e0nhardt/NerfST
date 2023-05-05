@@ -1,6 +1,7 @@
 from PIL import Image
 import numpy as np
 import torch
+import itertools
 
 def prepare_style_image(image_filename, scale_factor=1.0, alpha_color=None):
     pil_image = Image.open(image_filename)
@@ -29,3 +30,10 @@ def prepare_style_image(image_filename, scale_factor=1.0, alpha_color=None):
         
     return image
 
+
+def iterate_eternally(indices):
+    def infinite_shuffles():
+        while True:
+            yield np.random.permutation(indices)
+
+    return itertools.chain.from_iterable(infinite_shuffles())

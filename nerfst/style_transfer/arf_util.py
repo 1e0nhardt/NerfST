@@ -3,6 +3,15 @@ import torch
 
 ###### estimate linear color transform
 def match_colors_for_image_set(content_images, style_img):
+    """_summary_
+
+    Args:
+        content_images: (n, h, w, c)
+        style_img: (1, h, w, c) | (h, w, c)
+
+    Returns:
+        content_transformed, transfrom_matrix(4x4)
+    """
     content_sub = content_images.view(-1, 3)
     style_sub = style_img.view(-1, 3).to(content_sub.device)
 

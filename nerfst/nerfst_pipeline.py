@@ -24,7 +24,7 @@ from nerfst.nerfst_datamanager import (
     NerfSTDataManagerConfig,
 )
 from nerfst.style_transfer.pama import pama_infer_one_image
-
+from nerfst.util import iterate_eternally
 
 @dataclass
 class PamaConfig:
@@ -72,7 +72,9 @@ class NerfSTPipeline(VanillaPipeline):
 
         # keep track of spot in dataset
         if self.datamanager.config.train_num_images_to_sample_from == -1:
-            self.train_indices_order = cycle(range(len(self.datamanager.train_dataparser_outputs.image_filenames)))
+            # self.train_indices_order = cycle(range(len(self.datamanager.train_dataparser_outputs.image_filenames)))
+            #! 顺序取改为随机取
+            self.train_indices_order = iterate_eternally(range(len(self.datamanager.train_dataparser_outputs.image_filenames)))
         else:
             self.train_indices_order = cycle(range(self.datamanager.config.train_num_images_to_sample_from))
 
