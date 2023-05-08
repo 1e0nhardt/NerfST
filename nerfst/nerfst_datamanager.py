@@ -30,7 +30,6 @@ from nerfstudio.data.datamanagers.base_datamanager import (
 from nerfst.util import prepare_style_image
 from nerfst.style_transfer.arf_util import match_colors_for_image_set
 
-
 CONSOLE = Console(width=120)
 
 @dataclass

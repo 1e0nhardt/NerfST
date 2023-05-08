@@ -2,6 +2,9 @@ from PIL import Image
 import numpy as np
 import torch
 import itertools
+from rich.console import Console
+
+CONSOLE = Console(width=120)
 
 def prepare_style_image(image_filename, scale_factor=1.0, alpha_color=None):
     pil_image = Image.open(image_filename)
