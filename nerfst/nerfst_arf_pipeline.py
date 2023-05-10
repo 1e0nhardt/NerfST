@@ -23,8 +23,9 @@ from nerfst.nerfst_datamanager import (
     NerfSTDataManagerConfig,
 )
 from nerfst.style_transfer.nn_loss import NNLoss
-
 from rich.console import Console
+from nerfst.util import iterate_eternally
+
 CONSOLE = Console(width=120)
 
 @dataclass
@@ -54,7 +55,8 @@ class NerfSTArfPipeline(VanillaPipeline):
 
         # keep track of spot in dataset
         if self.datamanager.config.train_num_images_to_sample_from == -1:
-            self.train_indices_order = cycle(range(len(self.datamanager.train_dataparser_outputs.image_filenames)))
+            #! 顺序取改为随机取
+            self.train_indices_order = iterate_eternally(range(len(self.datamanager.train_dataparser_outputs.image_filenames)))
         else:
             self.train_indices_order = cycle(range(self.datamanager.config.train_num_images_to_sample_from))
         self.nn_loss_fn = NNLoss(device=device)
